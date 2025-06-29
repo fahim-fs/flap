@@ -3,7 +3,8 @@
 #include "iSound.h"
 using namespace std;
 
-int bgSoundIdx = -1;
+int bgSoundIdx = -1, bghSound = -1;
+int diesound = -1;
 int ball_x = 300;
 int ball_y = 300;
 int velocity_y = 0;
@@ -11,38 +12,64 @@ int gravity = 1;
 int thrust = -11;
 int r, g, b;
 int height1 = 120, gap = 150, height2 = 160;
-int wall_x = 600, velocity_wall = -5, delay = 200;
+int wall_x = 600, velocity_wall = -5, delay = 400, velocity_control = 10;
 int coll = 0;
 int home = 1, start = 0, gover = 0, inst = 0;
 int pause = 0;
-Image heli;
+int score = 0;
+char scoreText[20];
+char finalScore[20];
+
+static bool passedFirstWall = false;
+static bool passedSecondWall = false;
+bool hsound = true;
+
+Image heli, bg, homepageimage, goimg, insimg;
 
 void gamelogic();
 void instruction();
+void updateScore();
+void resetGame();
+
 void homepage()
 {
-    iShowImage(0, 0, "assets/images/homepage.png");
+    iShowLoadedImage(0, 0, &homepageimage);
 }
 
 void startpage()
 {
-    iShowImage(0, 0, "assets/images/back.png");
+    // store_score
+    sprintf(scoreText, "Score: %d", score);
+
+    // loading_bg_&_helicopter
+    iShowLoadedImage(0, 0, &bg);
     iShowLoadedImage(ball_x - 20, ball_y - 30, &heli);
 
     iSetColor(128, 78, 41);
     // wall_set01
     iFilledRectangle(wall_x, height1 + gap, 50, 600 - gap - height1);
     iFilledRectangle(wall_x, 0, 50, height1);
+
     // wall_set02
     iFilledRectangle(wall_x + delay, height2 + gap, 50, 600 - gap - height2);
     iFilledRectangle(wall_x + delay, 0, 50, height2);
 
-    // sneaky trick
+    // sneaky_trick
     iSetColor(0, 0, 0);
     iFilledRectangle(600, 0, 400, 600);
 
+    // score_printing
+    iSetColor(240, 0, 0);
+    iText(275, 612, scoreText, GLUT_BITMAP_HELVETICA_18);
+
+    // collision_check
     if (coll >= 1 || ball_y + 40 > 600 || ball_y + 5 < 0)
     {
+        // playing_die_sound_&_pausing_bgmusic
+        iPlaySound("assets/sounds/die.wav", false, 50);
+        iPauseSound(bghSound);
+
+        // resetting_variables
         gover = 1;
         start = 0;
         ball_x = 300;
@@ -55,9 +82,17 @@ void startpage()
         height2 = 160;
         wall_x = 600;
         velocity_wall = -5;
-        delay = 200;
+        delay = 400;
         coll = 0;
     }
+}
+
+// final_score_printing
+void final_Score()
+{
+    iSetColor(240, 0, 0);
+    sprintf(finalScore, "Your Final Score: %d", score);
+    iText(200, 612, finalScore, GLUT_BITMAP_HELVETICA_18);
 }
 
 int collision(int x1, int y1, int dx1, int dy1, int x2, int y2, int dx2, int dy2)
@@ -72,56 +107,126 @@ void gamelogic()
 {
     if (start == 1)
     {
-        // ball control
+        // ball_control
         velocity_y += gravity;
         ball_y -= velocity_y;
 
-        // wall set movement
-
+        // wall_set_movement
+        if(score >= velocity_control)
+        {
+           velocity_wall -= 1;
+           velocity_control +=10;
+        }
         wall_x += velocity_wall;
 
-        // colission detection
+        // colission_detection
         coll = 0;
         coll += collision(ball_x, ball_y, 70, 40, wall_x, height1 + gap, 50, 600 - gap - height1);
         coll += collision(ball_x, ball_y, 70, 40, wall_x, 0, 50, height1);
         coll += collision(ball_x, ball_y, 70, 40, wall_x + delay, height2 + gap, 50, 600 - gap - height2);
         coll += collision(ball_x, ball_y, 70, 40, wall_x + delay, 0, 50, height2);
 
-        // scoring system
+        // scoring_system
+        updateScore();
 
-        // wall set renewal
+        // wall_set_renewal
         if (wall_x + 50 + delay <= 0)
         {
+            // wall_1
             wall_x = 600;
             height1 = rand() % (400 - 100 + 1) + 100;
             gap = rand() % (150 - 120 + 1) + 120;
 
+            // wall_2
             wall_x = 600;
-            delay = rand() % (300 - 200 + 1) + 200;
+            delay = rand() % (500 - 250 + 1) + 250;
             height2 = rand() % (400 - 100 + 1) + 100;
+
+            // resetting_score_boolean
+            passedFirstWall = false;
+            passedSecondWall = false;
         }
     }
 }
 
+// scoring
+void updateScore()
+{
+    int ball_right = ball_x + 70;
+    // checking_if_it_has_passed_first_wall
+    if (!passedFirstWall && ball_right > wall_x + 50)
+    {
+        score++;
+        iPlaySound("assets/sounds/point.wav", false, 20);
+        passedFirstWall = true;
+    }
+    // checking_if_it_has_passed_second_wall
+    if (!passedSecondWall && ball_right > wall_x + delay + 50)
+    {
+        score++;
+        iPlaySound("assets/sounds/point.wav", false, 20);
+        passedSecondWall = true;
+    }
+}
+
+// void resetGame()
+// {
+//     score = 0;
+//     passedFirstWall = false;
+//     passedSecondWall = false;
+
+//     ball_x = 300;
+//     ball_y = 300;
+//     velocity_y = 0;
+
+//     wall_x = 600;
+//     delay = rand() % (500 - 250 + 1) + 250;
+//     height1 = rand() % (400 - 100 + 1) + 100;
+//     height2 = rand() % (400 - 100 + 1) + 100;
+//     gap = rand() % (150 - 120 + 1) + 120;
+// }
+
 void iDraw()
 {
-
     iClear();
+    // iSetColor(115, 189, 120);
+    // iFilledRectangle(0, 600, 600, 40);
     if (home == 1)
     {
         homepage();
     }
     else if (start == 1)
     {
+        iSetColor(115, 189, 120);
+        iFilledRectangle(0, 600, 600, 40);
+        // iPauseSound(bgSoundIdx);
+        // bghSound = iPlaySound("assets/sounds/helicopter-sound.wav", true);
+        if (hsound == true)
+        {
+            bghSound = iPlaySound("assets/sounds/helicopter-sound.wav", true, 100);
+            iPauseSound(bgSoundIdx);
+            hsound = false;
+        }
         startpage();
     }
     else if (gover == 1)
     {
-        iShowImage(0, 0, "assets/images/gameover.png");
+        iSetColor(115, 189, 120);
+        iFilledRectangle(0, 600, 600, 40);
+        if(hsound == false)
+        {
+            iResumeSound(bgSoundIdx);
+        }
+        iShowLoadedImage(0, 0, &goimg);
+        if(hsound == false)
+        {
+            iResumeSound(bgSoundIdx);
+        }
+        final_Score();
     }
     else if (inst == 1)
     {
-        iShowImage(0, 0, "assets/images/instruction.png");
+        iShowLoadedImage(0, 0, &insimg);
     }
 }
 
@@ -151,27 +256,34 @@ void iMouseWheel(int dir, int mx, int my)
 */
 void iMouse(int button, int state, int mx, int my)
 {
-    // printf("%d %d\n", mx, my);
     if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)
     {
         if (start == 1)
+        {
             velocity_y = thrust;
-
+        }
         if (home == 1 && (mx > 185 && mx < 415) && (my > 261 && my < 326))
         {
             home = 0;
             start = 1;
+            score = 0;
+            passedFirstWall = false;
+            passedSecondWall = false;
         }
-
         else if (start == 0 && (mx > 175 && mx < 427) && (my > 257 && my < 324))
         {
+            passedFirstWall = false;
+            passedSecondWall = false;
             gover = 0;
             start = 1;
+            score = 0;
+            hsound = true;
         }
         else if (gover == 1 && (mx > 177 && mx < 421) && (my > 148 && my < 202))
         {
             gover = 0;
             home = 1;
+            hsound = true;
         }
         else if (home == 1 && (mx > 185 && mx < 415) && (my > 68 && my < 105))
         {
@@ -202,12 +314,16 @@ void iMouse(int button, int state, int mx, int my)
 */
 void iKeyboard(unsigned char key)
 {
-    if (key == 'p')
+    if (key == 'p' && start == 1 && pause == 0)
     {
+        iPauseTimer(0);
+        pause = 1;
         // do something with 'q'
     }
-    if (key == 'r')
+    if (key == 'r' && start == 1)
     {
+        iResumeTimer(0);
+        pause = 0;
     }
     // place your codes for other keys here
 }
@@ -231,18 +347,23 @@ void iSpecialKeyboard(unsigned char key)
     // place your codes for other keys here
 }
 
+void iLoadResources()
+{
+    iLoadImage(&heli, "assets/images/helisprite.png");
+    iLoadImage(&bg, "assets/images/back.png");
+    iLoadImage(&homepageimage, "assets/images/homepage.png");
+    iLoadImage(&goimg, "assets/images/gameover.png");
+    iLoadImage(&insimg, "assets/images/instruction.png");
+}
 int main(int argc, char *argv[])
 {
     glutInit(&argc, argv);
-    iLoadImage(&heli, "assets/images/helisprite.png");
-
-    iSetTimer(20, gamelogic);
-
-    iInitialize(600, 600, "Ball Escape");
-
+    iLoadResources();
     iInitializeSound();
+    bgSoundIdx = iPlaySound("assets/sounds/bgm1.wav", true);
 
-    bgSoundIdx = iPlaySound("assets/sounds/background.wav", true, 50);
+    iSetTimer(22, gamelogic);
 
+    iInitialize(600, 640, "Ball Escape");
     return 0;
 }
