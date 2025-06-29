@@ -24,12 +24,13 @@ static bool passedFirstWall = false;
 static bool passedSecondWall = false;
 bool hsound = true;
 
-Image heli, bg, homepageimage, goimg, insimg;
+Image heli, bg, homepageimage, goimg, insimg, scoredigit[10], final_scorep;
 
 void gamelogic();
 void instruction();
 void updateScore();
 void resetGame();
+void printScorePicture(int score, int x, int y);
 
 void homepage()
 {
@@ -45,8 +46,9 @@ void startpage()
     iShowLoadedImage(0, 0, &bg);
     iShowLoadedImage(ball_x - 20, ball_y - 30, &heli);
 
-    iSetColor(128, 78, 41);
-    // wall_set01
+    iSetColor(145, 88, 45);
+    // iSetColor(128, 78, 41);
+    //  wall_set01
     iFilledRectangle(wall_x, height1 + gap, 50, 600 - gap - height1);
     iFilledRectangle(wall_x, 0, 50, height1);
 
@@ -59,8 +61,9 @@ void startpage()
     iFilledRectangle(600, 0, 400, 600);
 
     // score_printing
-    iSetColor(240, 0, 0);
-    iText(275, 612, scoreText, GLUT_BITMAP_HELVETICA_18);
+    // iSetColor(240, 0, 0);
+    // iText(275, 612, scoreText, GLUT_BITMAP_HELVETICA_18);
+    printScorePicture(score, 275, 606); // Adjust position as needed
 
     // collision_check
     if (coll >= 1 || ball_y + 40 > 600 || ball_y + 5 < 0)
@@ -90,9 +93,18 @@ void startpage()
 // final_score_printing
 void final_Score()
 {
-    iSetColor(240, 0, 0);
-    sprintf(finalScore, "Your Final Score: %d", score);
-    iText(200, 612, finalScore, GLUT_BITMAP_HELVETICA_18);
+    iShowLoadedImage(190, 604, &final_scorep);
+    char scoreString[10];
+    sprintf(scoreString, "%d", score);
+
+    int len = strlen(scoreString);
+    int digitWidth = 20;
+
+    for (int i = 0; i < len; i++)
+    {
+        int digit = scoreString[i] - '0';
+        iShowLoadedImage(410 + i * digitWidth, 606, &scoredigit[digit]);
+    }
 }
 
 int collision(int x1, int y1, int dx1, int dy1, int x2, int y2, int dx2, int dy2)
@@ -112,10 +124,10 @@ void gamelogic()
         ball_y -= velocity_y;
 
         // wall_set_movement
-        if(score >= velocity_control)
+        if (score >= velocity_control)
         {
-           velocity_wall -= 1;
-           velocity_control +=10;
+            velocity_wall -= 1;
+            velocity_control += 10;
         }
         wall_x += velocity_wall;
 
@@ -169,38 +181,20 @@ void updateScore()
     }
 }
 
-// void resetGame()
-// {
-//     score = 0;
-//     passedFirstWall = false;
-//     passedSecondWall = false;
-
-//     ball_x = 300;
-//     ball_y = 300;
-//     velocity_y = 0;
-
-//     wall_x = 600;
-//     delay = rand() % (500 - 250 + 1) + 250;
-//     height1 = rand() % (400 - 100 + 1) + 100;
-//     height2 = rand() % (400 - 100 + 1) + 100;
-//     gap = rand() % (150 - 120 + 1) + 120;
-// }
-
 void iDraw()
 {
     iClear();
-    // iSetColor(115, 189, 120);
-    // iFilledRectangle(0, 600, 600, 40);
     if (home == 1)
     {
+        iSetColor(134, 196, 196);
+        iFilledRectangle(0, 600, 600, 40);
         homepage();
     }
     else if (start == 1)
     {
-        iSetColor(115, 189, 120);
+        iSetColor(134, 196, 196);
         iFilledRectangle(0, 600, 600, 40);
-        // iPauseSound(bgSoundIdx);
-        // bghSound = iPlaySound("assets/sounds/helicopter-sound.wav", true);
+        ;
         if (hsound == true)
         {
             bghSound = iPlaySound("assets/sounds/helicopter-sound.wav", true, 100);
@@ -211,23 +205,23 @@ void iDraw()
     }
     else if (gover == 1)
     {
-        iSetColor(115, 189, 120);
+        iSetColor(134, 196, 196);
         iFilledRectangle(0, 600, 600, 40);
-        if(hsound == false)
-        {
-            iResumeSound(bgSoundIdx);
-        }
         iShowLoadedImage(0, 0, &goimg);
-        if(hsound == false)
+        final_Score();
+        if (hsound == false)
         {
             iResumeSound(bgSoundIdx);
         }
-        final_Score();
     }
     else if (inst == 1)
     {
         iShowLoadedImage(0, 0, &insimg);
     }
+}
+
+void print_score(int score, int x, int y)
+{
 }
 
 /*
@@ -308,6 +302,21 @@ void iMouse(int button, int state, int mx, int my)
     }
 }
 
+void printScorePicture(int score, int x, int y)
+{
+    char scoreString[10];
+    sprintf(scoreString, "%d", score);
+
+    int len = strlen(scoreString);
+    int digitWidth = 20;
+
+    for (int i = 0; i < len; i++)
+    {
+        int digit = scoreString[i] - '0';
+        iShowLoadedImage(x + i * digitWidth, y, &scoredigit[digit]);
+    }
+}
+
 /*
     function iKeyboard() is called whenever the user hits a key in keyboard.
     key- holds the ASCII value of the key pressed.
@@ -349,16 +358,31 @@ void iSpecialKeyboard(unsigned char key)
 
 void iLoadResources()
 {
+    // loading_digits
+    char path[50];
+    for (int i = 0; i < 10; i++)
+    {
+        sprintf(path, "assets/images/scoredigitset/%d.png", i);
+        iLoadImage(&scoredigit[i], path);
+    }
+
+    // load_other_resources
     iLoadImage(&heli, "assets/images/helisprite.png");
     iLoadImage(&bg, "assets/images/back.png");
     iLoadImage(&homepageimage, "assets/images/homepage.png");
     iLoadImage(&goimg, "assets/images/gameover.png");
     iLoadImage(&insimg, "assets/images/instruction.png");
+    iLoadImage(&final_scorep, "assets/images/final_score.png");
 }
 int main(int argc, char *argv[])
 {
     glutInit(&argc, argv);
     iLoadResources();
+    for (int i = 0; i < 10; i++)
+    {
+        iResizeImage(&scoredigit[i], 20, 25);
+    }
+    iResizeImage(&final_scorep, 220, 28);
     iInitializeSound();
     bgSoundIdx = iPlaySound("assets/sounds/bgm1.wav", true);
 
