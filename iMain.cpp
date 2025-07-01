@@ -374,6 +374,7 @@ void iLoadResources()
     iLoadImage(&insimg, "assets/images/instruction.png");
     iLoadImage(&final_scorep, "assets/images/final_score.png");
 }
+
 int main(int argc, char *argv[])
 {
     glutInit(&argc, argv);
